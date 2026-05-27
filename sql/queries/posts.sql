@@ -27,3 +27,10 @@ WHERE feed_follows.user_id = $1
 AND feeds.name ILIKE $2
 ORDER BY posts.published_at ASC NULLS LAST
 LIMIT $3;
+
+-- name: GetPostsForUserOldest :many
+SELECT posts.* FROM posts
+JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
+WHERE feed_follows.user_id = $1
+ORDER BY posts.published_at ASC NULLS LAST
+LIMIT $2;

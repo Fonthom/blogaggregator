@@ -67,7 +67,7 @@ func main() {
 	cmds := &commands{
 		handlers: make(map[string]func(*state, command) error),
 	}
-	
+
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
 	cmds.register("reset", handlerReset)
@@ -81,6 +81,7 @@ func main() {
 
 	cmds.register("agg", handlerAgg)
 	cmds.register("browse", middlewareLoggedIn(handlerBrowse))
+	cmds.register("read", middlewareLoggedIn(handlerTUI))
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "error: not enough arguments, a command is required")

@@ -103,8 +103,23 @@ gator browse --limit=10     # show 10 posts
 gator browse --feed="Hacker News"             # 2 newest from Hacker News
 gator browse --feed="Hacker News" --limit=5   # 5 newest from Hacker News
 gator browse --feed="Hacker News" --sort=oldest --limit=5
+
+# Open the interactive TUI reader (recommended)
+gator read
 ```
+ ### TUI reader
  
+`gator read` opens a full-screen interactive reader for your followed feeds:
+ 
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Move up |
+| `↓` / `j` | Move down |
+| `Enter` | Open post detail |
+| `o` | Open post URL in browser |
+| `Esc` / `b` | Back to list |
+| `q` | Quit |
+
 ### Example workflow
  
 ```bash
@@ -113,4 +128,5 @@ gator addfeed "Boot.dev Blog" "https://www.boot.dev/blog/index.xml"
 gator addfeed "Hacker News" "https://news.ycombinator.com/rss"
 gator agg 30s       
 gator browse --limit=5 
+gator read
 ```
