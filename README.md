@@ -99,7 +99,10 @@ gator agg 1m
  
 # Browse the latest posts from feeds you follow
 gator browse        # defaults to 2 posts
-gator browse 10     # show 10 posts
+gator browse --limit=10     # show 10 posts
+gator browse --feed="Hacker News"             # 2 newest from Hacker News
+gator browse --feed="Hacker News" --limit=5   # 5 newest from Hacker News
+gator browse --feed="Hacker News" --sort=oldest --limit=5
 ```
  
 ### Example workflow
@@ -109,5 +112,5 @@ gator register fonthom
 gator addfeed "Boot.dev Blog" "https://www.boot.dev/blog/index.xml"
 gator addfeed "Hacker News" "https://news.ycombinator.com/rss"
 gator agg 30s       
-gator browse 5 
+gator browse --limit=5 
 ```
