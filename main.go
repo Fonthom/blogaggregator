@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"time"
+	"strconv"
+	"strings"
 
 	"github.com/Fonthom/gator/internal/config"
 	"github.com/Fonthom/gator/internal/database"
@@ -141,10 +143,27 @@ func scrapeFeeds(s *state) {
 		return
 	}
 
-	fmt.Printf("Feed: %s\n", feed.Name)
 	for _, item := range rssFeed.Channel.Item {
-		fmt.Printf("  - %s\n", item.Title)
+		publishedAt := parsePublishedAt(item.PubDate)
+
+		_, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: item.Description != ""},
+			PublishedAt: publishedAt,
+			FeedID:      feed.ID,
+		})
+		if err != nil {
+			// ignore duplicate URL errors, log everything else
+			if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				fmt.Fprintf(os.Stderr, "error saving post %s: %v\n", item.Link, err)
+			}
+		}
 	}
+	fmt.Printf("Fetched %d posts from %s\n", len(rssFeed.Channel.Item), feed.Name)
 }
 
 func handlerAgg(s *state, cmd command) error {
@@ -284,6 +303,56 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 	return nil
 }
 
+func parsePublishedAt(s string) sql.NullTime {
+	formats := []string{
+		time.RFC1123Z,
+		time.RFC1123,
+		time.RFC3339,
+		"2006-01-02T15:04:05Z",
+		"Mon, 2 Jan 2006 15:04:05 -0700",
+		"Mon, 2 Jan 2006 15:04:05 MST",
+	}
+	for _, format := range formats {
+		t, err := time.Parse(format, s)
+		if err == nil {
+			return sql.NullTime{Time: t, Valid: true}
+		}
+	}
+	return sql.NullTime{Valid: false}
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	limit := 2
+	if len(cmd.args) > 0 {
+		var err error
+		limit, err = strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("invalid limit: %w", err)
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("error getting posts: %w", err)
+	}
+
+	for _, post := range posts {
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("  URL:      %s\n", post.Url)
+		if post.Description.Valid {
+			fmt.Printf("  Desc:     %s\n", post.Description.String)
+		}
+		if post.PublishedAt.Valid {
+			fmt.Printf("  Published: %s\n", post.PublishedAt.Time.Format(time.RFC822))
+		}
+		fmt.Println()
+	}
+	return nil
+}
+
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
@@ -316,6 +385,7 @@ func main() {
 	cmds.register("follow", middlewareLoggedIn(handlerFollow))
 	cmds.register("following", middlewareLoggedIn(handlerFollowing))
 	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
+	cmds.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "error: not enough arguments, a command is required")
