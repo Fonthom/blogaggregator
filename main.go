@@ -9,6 +9,7 @@ import (
 	"time"
 	"strconv"
 	"strings"
+	"flag"
 
 	"github.com/Fonthom/gator/internal/config"
 	"github.com/Fonthom/gator/internal/database"
@@ -322,28 +323,51 @@ func parsePublishedAt(s string) sql.NullTime {
 }
 
 func handlerBrowse(s *state, cmd command, user database.User) error {
-	limit := 2
-	if len(cmd.args) > 0 {
-		var err error
-		limit, err = strconv.Atoi(cmd.args[0])
-		if err != nil {
-			return fmt.Errorf("invalid limit: %w", err)
-		}
+	flags := flag.NewFlagSet("browse", flag.ContinueOnError)
+	limit := flags.Int("limit", 2, "number of posts to show")
+	sort := flags.String("sort", "newest", "sort order: newest or oldest")
+	feed := flags.String("feed", "", "filter by feed name")
+	if err := flags.Parse(cmd.args); err != nil {
+		return fmt.Errorf("error parsing flags: %w", err)
 	}
 
-	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
-		UserID: user.ID,
-		Limit:  int32(limit),
-	})
+	var posts []database.Post
+	var err error
+	ctx := context.Background()
+
+	switch {
+	case *feed != "" && *sort == "oldest":
+		posts, err = s.db.GetPostsForUserFilteredOldest(ctx, database.GetPostsForUserFilteredOldestParams{
+			UserID: user.ID,
+			Name:   *feed,
+			Limit:  int32(*limit),
+		})
+	case *feed != "":
+		posts, err = s.db.GetPostsForUserFiltered(ctx, database.GetPostsForUserFilteredParams{
+			UserID: user.ID,
+			Name:   *feed,
+			Limit:  int32(*limit),
+		})
+	case *sort == "oldest":
+		posts, err = s.db.GetPostsForUserOldest(ctx, database.GetPostsForUserOldestParams{
+			UserID: user.ID,
+			Limit:  int32(*limit),
+		})
+	default:
+		posts, err = s.db.GetPostsForUser(ctx, database.GetPostsForUserParams{
+			UserID: user.ID,
+			Limit:  int32(*limit),
+		})
+	}
 	if err != nil {
 		return fmt.Errorf("error getting posts: %w", err)
 	}
 
 	for _, post := range posts {
 		fmt.Printf("--- %s ---\n", post.Title)
-		fmt.Printf("  URL:      %s\n", post.Url)
+		fmt.Printf("  URL:  %s\n", post.Url)
 		if post.Description.Valid {
-			fmt.Printf("  Desc:     %s\n", post.Description.String)
+			fmt.Printf("  Desc: %s\n", post.Description.String)
 		}
 		if post.PublishedAt.Valid {
 			fmt.Printf("  Published: %s\n", post.PublishedAt.Time.Format(time.RFC822))

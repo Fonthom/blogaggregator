@@ -9,3 +9,21 @@ JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
 WHERE feed_follows.user_id = $1
 ORDER BY posts.published_at DESC NULLS LAST
 LIMIT $2;
+
+-- name: GetPostsForUserFiltered :many
+SELECT posts.* FROM posts
+JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
+JOIN feeds ON posts.feed_id = feeds.id
+WHERE feed_follows.user_id = $1
+AND feeds.name ILIKE $2
+ORDER BY posts.published_at DESC NULLS LAST
+LIMIT $3;
+
+-- name: GetPostsForUserFilteredOldest :many
+SELECT posts.* FROM posts
+JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
+JOIN feeds ON posts.feed_id = feeds.id
+WHERE feed_follows.user_id = $1
+AND feeds.name ILIKE $2
+ORDER BY posts.published_at ASC NULLS LAST
+LIMIT $3;
