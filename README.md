@@ -4,9 +4,14 @@ A multi-user RSS feed aggregator CLI. Add feeds, follow them, and browse the lat
  
 ## Prerequisites
  
-- [Go](https://go.dev/doc/install) 1.22 or later
-- [PostgreSQL](https://www.postgresql.org/download/) 14 or later
-Make sure both are installed and available on your `PATH` before continuing.
+- [Go](https://go.dev/doc/install) 1.26 or later
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [lib/pq](https://github.com/lib/pq) — the PostgreSQL driver for Go:
+```bash
+go get github.com/lib/pq
+```
+ 
+Make sure Go and PostgreSQL are installed and available on your `PATH` before continuing.
  
 ## Installation
  
